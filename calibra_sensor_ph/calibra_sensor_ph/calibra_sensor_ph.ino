@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-const int ph_pin = 35;       // Pino analógico onde o sensor está conectado
+const int ph_pin = 32;       // Pino analógico onde o sensor está conectado
 float calibration_value = 11.5; // Ajuste conforme sua calibração
 int buffer_arr[10];
 int temp;

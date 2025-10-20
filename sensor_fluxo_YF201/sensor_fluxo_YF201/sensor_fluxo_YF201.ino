@@ -1,15 +1,3 @@
-/*
-  Application:
-  - Interface water flow sensor with ESP32 board.
-  
-  Board:
-  - ESP32 Dev Module
-    https://my.cytron.io/p-node32-lite-wifi-and-bluetooth-development-kit
-  Sensor:
-  - G 1/2 Water Flow Sensor
-    https://my.cytron.io/p-g-1-2-water-flow-sensor
- */
-
 #define LED_BUILTIN 2
 #define SENSOR  25
 
