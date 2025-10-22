@@ -15,6 +15,7 @@ SoftwareSerial loraSerial(4, 5); // TX, RX
 
 unsigned long sendDataPrevMillis = 0;
 bool signupOK = false;
+bool isGateOpen = false; // Variável para controlar o estado da comporta
 
 void setup() {
   Serial.begin(9600);
@@ -40,30 +41,41 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("Inicio");
-  delay(1000);
   if (loraSerial.available() > 1) {
-    Serial.println("lora serial disponivel");
     String input = loraSerial.readString();
-    Serial.println("Recebido LoRa: " + input);
+    input.trim();
 
-    // Extrair valores (formato JSON simples)
-    int flowRate = getValue(input, "flowRate").toInt();
-    int waterLevel = getValue(input, "waterLevel").toInt();
-    bool isGateOpen = getValue(input, "isGateOpen") == "1";
+    // Extrair valores recebidos (formato JSON simples)
+    float ph = getValue(input, "ph").toFloat();
+    float flowRate = getValue(input, "flowRate").toFloat();
+    unsigned long totalMilliLitres = getValue(input, "totalMilliLitres").toInt();
+    float analogVoltage = getValue(input, "analogVoltage").toFloat();
+    String gateState = getValue(input, "gateState");
 
+    // Atualizar o banco de dados com os valores recebidos
     if (Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 2000 || sendDataPrevMillis == 0)) {
       sendDataPrevMillis = millis();
 
-      Firebase.RTDB.setInt(&fbdo, "markers/marker_0/flowRate", flowRate);
-      Firebase.RTDB.setInt(&fbdo, "markers/marker_0/waterlevel", waterLevel);
-      Firebase.RTDB.setBool(&fbdo, "markers/marker_0/isGateOpen", isGateOpen);
+      Firebase.RTDB.setFloat(&fbdo, "sensors/ph", ph);
+      Firebase.RTDB.setFloat(&fbdo, "sensors/flowRate", flowRate);
+      Firebase.RTDB.setInt(&fbdo, "sensors/totalMilliLitres", totalMilliLitres);
+      Firebase.RTDB.setFloat(&fbdo, "sensors/analogVoltage", analogVoltage);
+      Firebase.RTDB.setString(&fbdo, "sensors/gateState", gateState);
 
-      Serial.println("Firebase atualizado");
+      Serial.println("Firebase atualizado com dados dos sensores.");
     }
   }
 
+  // Enviar comando para abrir ou fechar a comporta com base na variável isGateOpen
+  String command = isGateOpen ? "OPEN_GATE" : "CLOSE_GATE";
+  loraSerial.println(command);
 
+  // Atualizar o banco de dados com o estado da comporta
+  if (Firebase.ready() && signupOK) {
+    Firebase.RTDB.setBool(&fbdo, "control/isGateOpen", isGateOpen);
+  }
+
+  delay(1000);
 }
 
 /* Função para extrair valores do JSON simples */
@@ -73,5 +85,5 @@ String getValue(String data, String key) {
   int start = data.indexOf(":", keyIndex) + 1;
   int end = data.indexOf(",", start);
   if (end == -1) end = data.indexOf("}", start);
-  return data.substring(start, end);
+  return data.substring(start, end).trim();
 }
